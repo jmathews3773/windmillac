@@ -1,0 +1,10 @@
+{
+    "domain": "windmillac",
+    "documentation": "",
+    "issue_tracker": "",
+    "codeowners": [""],
+    "name": "WindmillAc",
+    "version": "0.0.1",
+    "iot_class": "local_polling",
+    "requirements": ["requests==2.31.0"]
+}
