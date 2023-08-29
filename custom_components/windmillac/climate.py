@@ -94,7 +94,14 @@ class WindmillClimateEntity(ClimateEntity):
     @property
     def hvac_action(self) -> HVACAction | None:
         """Return the current HVAC action (cooling, idle, off)."""
-        return HVACAction.OFF
+        if not self._is_on:
+            return HVACAction.OFF
+        if self._mode == MODE_COOL:
+            return HVACAction.COOLING
+        elif self._mode == MODE_FAN:
+            return HVACAction.FAN
+        else:
+            return HVACAction.IDLE
 
     def set_hvac_mode(self, hvac_mode: HVACMode):
         if hvac_mode not in self._attr_hvac_modes:
