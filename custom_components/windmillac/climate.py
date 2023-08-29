@@ -30,7 +30,6 @@ def setup_platform(
         add_entities: AddEntitiesCallback,
         discovery_info: DiscoveryInfoType | None = None
 ) -> None:
-    _LOGGER.warning("Connecting to windmill_ac")
     windmill_ac = WindmillClimateEntity(
         config[CONF_ACCESS_TOKEN],
         config[CONF_NAME])

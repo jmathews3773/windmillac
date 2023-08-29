@@ -40,19 +40,14 @@ class WindmillAC:
         self.__update_value(POWER, POWER_OFF)
 
     def is_on(self) -> bool:
-        _LOGGER.warning("is on?")
         power = self.__get_value(POWER)
-        _LOGGER.warning("Power: %s" % power)
         if self.__get_value(POWER) == str(POWER_ON):
             return True
         return False
 
     def __get_value(self, pin: str) -> str:
         uri = BASE_URI + GET_SUFFIX + "?token=%s&%s=''" % (self.token, pin)
-        _LOGGER.warning(uri)
         r = requests.get(uri)
-        _LOGGER.warning(r.status_code)
-        _LOGGER.warning(r.text)
         return r.text
 
     def __update_value(self, pin: str, value: str) -> str:
