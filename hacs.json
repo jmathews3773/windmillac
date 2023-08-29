@@ -1,7 +1,7 @@
 {
   "name": "Windmill AC",
   "zip_release": true,
-  "filename": "windmillac.zip",
+  "filename": "windmillac-0.0.2.zip",
   "render_readme": true,
   "domains": ["climate"],
   "iot_class": ["Assumed State", "Local Push"]
