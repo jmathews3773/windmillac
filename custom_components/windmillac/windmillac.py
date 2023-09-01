@@ -1,7 +1,8 @@
 import requests
 import logging
 
-from custom_components.windmillac.const import CURRENT_TEMP, TARGET_TEMP, MODE, FAN, POWER, POWER_ON, POWER_OFF
+from custom_components.windmillac.const import CURRENT_TEMP, TARGET_TEMP, MODE, FAN, POWER, POWER_ON, POWER_OFF, \
+    FAN_MODE_INT, COOL_MODE_INT, ECO_MODE_INT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -10,7 +11,7 @@ GET_SUFFIX = "get"
 UPDATE_SUFFIX = "update"
 
 
-class WindmillAC:
+class WindmillAC():
 
     def __init__(self, token: str):
         self.token = token
@@ -36,6 +37,15 @@ class WindmillAC:
     def turn_on(self):
         self.__update_value(POWER, POWER_ON)
 
+    def set_fan_mode(self):
+        self.__update_value(MODE, FAN_MODE_INT)
+
+    def set_cool_mode(self):
+        self.__update_value(MODE, COOL_MODE_INT)
+
+    def set_eco_mode(self):
+        self.__update_value(MODE, ECO_MODE_INT)
+
     def turn_off(self):
         self.__update_value(POWER, POWER_OFF)
 
@@ -52,4 +62,5 @@ class WindmillAC:
 
     def __update_value(self, pin: str, value: str) -> str:
         r = requests.get(BASE_URI + UPDATE_SUFFIX + "?token=%s&%s=%s" % (self.token, pin, value))
+        _LOGGER.warning(r.text)
         return r.text
