@@ -7,6 +7,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import DiscoveryInfoType
+from datetime import timedelta
 
 from custom_components.windmillac.const import FAN_AUTO, FAN_LOW, FAN_HIGH, FAN_MEDIUM, MODE_COOL, MODE_ECO, MODE_FAN
 from custom_components.windmillac.windmillac import WindmillAC
@@ -23,6 +24,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_NAME): cv.string
     }
 )
+
+MAX_RETRIES = 3
+
+SCAN_INTERVAL = timedelta(minutes=2)
 
 
 def setup_platform(
@@ -104,6 +109,11 @@ class WindmillClimateEntity(ClimateEntity):
             return HVACAction.IDLE
 
     def set_hvac_mode(self, hvac_mode: HVACMode):
+        # _LOGGER.warning("Setting mode public: %s" % hvac_mode)
+        self._run_with_retry(self.__set_hvac_mode_internal, "set_hvac_mode", MAX_RETRIES, hvac_mode)
+
+    def __set_hvac_mode_internal(self, hvac_mode: HVACMode):
+        # _LOGGER.warning("Setting mode: %s" % hvac_mode)
         if hvac_mode not in self._attr_hvac_modes:
             raise NotImplementedError("Mode %s not implemented" % hvac_mode)
         if hvac_mode == HVACMode.OFF:
@@ -122,8 +132,11 @@ class WindmillClimateEntity(ClimateEntity):
             self.windmill.set_eco_mode()
         else:
             raise NotImplementedError("Mode %s not implemented" % hvac_mode)
-
+    
     def set_fan_mode(self, fan_mode: str):
+        self._run_with_retry(self.__set_fan_mode_internal, "set_fan_mode", MAX_RETRIES, fan_mode)
+
+    def __set_fan_mode_internal(self, fan_mode: str):
         if fan_mode == "FAN_AUTO":
             self.windmill.set_fan_speed(FAN_AUTO)
         elif fan_mode == "FAN_LOW":
@@ -136,7 +149,13 @@ class WindmillClimateEntity(ClimateEntity):
             raise NotImplementedError("Fan mode %s not implemented" % fan_mode)
 
     def set_temperature(self, **kwargs):
+        # _LOGGER.warning("Setting temp public: %s" % kwargs)
+        temp = kwargs.get(ATTR_TEMPERATURE)
+        return self.windmill.set_target_temp(temp)
+
+    def __set_temperature_internal(self, **kwargs):
         """Set new target temperature."""
+        # _LOGGER.warning("Setting temp internal: %s" % kwargs)
         temp = kwargs.get(ATTR_TEMPERATURE)
         return self.windmill.set_target_temp(temp)
 
@@ -145,7 +164,28 @@ class WindmillClimateEntity(ClimateEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
+        self._run_with_retry(self.__update_internal, "update", MAX_RETRIES)
+
+    def __update_internal(self) -> None:
         self._current_temp = self.windmill.get_current_temp()
         self._target_temp = self.windmill.get_target_temp()
         self._is_on = self.windmill.is_on()
         self._mode = self.windmill.get_mode()
+            
+    def _run_with_retry(self, function, function_name, num_retries, arg=None):
+        _LOGGER.warning("Calling function %s for windmill" % function_name)
+        retry_count = 0
+        exception = None
+        while retry_count < num_retries:
+            try:
+                if arg is not None:
+                    function(arg)
+                else:
+                    function()
+                return
+            except Exception as e:
+                _LOGGER.warning("Failed to call function %s for windmill, retrying %s" % (function_name, retry_count))
+                retry_count += 1
+                exception = e
+        _LOGGER.error("Failed to call windmill ac function %s" % function_name, exception) 
+
